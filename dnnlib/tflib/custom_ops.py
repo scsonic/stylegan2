@@ -108,7 +108,7 @@ def get_plugin(cuda_file):
                 print('Preprocessing... ', end='', flush=True)
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_file = os.path.join(tmp_dir, cuda_file_name + '_tmp' + cuda_file_ext)
-                _run_cmd(_prepare_nvcc_cli('"%s" --preprocess -o "%s" --keep --keep-dir "%s"' % (cuda_file, tmp_file, tmp_dir)))
+                _run_cmd(_prepare_nvcc_cli('"%s" --preprocess -o "%s" --keep --keep-dir "%s" -std=c++11' % (cuda_file, tmp_file, tmp_dir)))
                 with open(tmp_file, 'rb') as f:
                     bad_file_str = ('"' + cuda_file.replace('\\', '/') + '"').encode('utf-8') # __FILE__ in error check macros
                     good_file_str = ('"' + cuda_file_base + '"').encode('utf-8')
@@ -124,7 +124,7 @@ def get_plugin(cuda_file):
             compile_opts += '"%s"' % os.path.join(tf.sysconfig.get_lib(), 'python', '_pywrap_tensorflow_internal.lib')
         elif os.name == 'posix':
             compile_opts += '"%s"' % os.path.join(tf.sysconfig.get_lib(), 'python', '_pywrap_tensorflow_internal.so')
-            compile_opts += ' --compiler-options \'-fPIC -D_GLIBCXX_USE_CXX11_ABI=0\''
+            compile_opts += ' --compiler-options \'-fPIC -D_GLIBCXX_USE_CXX11_ABI=1\''
         else:
             assert False # not Windows or Linux, w00t?
         compile_opts += ' --gpu-architecture=%s' % _get_cuda_gpu_arch_string()
