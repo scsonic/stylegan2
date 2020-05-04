@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 result_1/
 results/
 .idea/
 a.out
+=======
+.idea/
+>>>>>>> b42fb83a79c316b826e0535e49d31063d2d3b67f
 __pycache__

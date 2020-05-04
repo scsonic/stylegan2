@@ -5,8 +5,8 @@ import glob
 img_array = []
 fakes_array = []
 
-scan_dir = '../../fakes*.png'
-# scan_dir = "/home/scsonic/Desktop/stylegan2_result_only_copy/fakes/fakes*.png"
+# scan_dir = '../../fakes*.png'
+scan_dir = "/home/scsonic/Desktop/stylegan2_result_only_copy/fakes/fakes*.png"
 
 file_list = glob.glob(scan_dir)
 file_list = sorted(file_list)
