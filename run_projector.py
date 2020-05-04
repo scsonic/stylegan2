@@ -66,6 +66,27 @@ def project_real_images(network_pkl, dataset_name, data_dir, num_images, num_sna
         print('Projecting image %d/%d ...' % (image_idx, num_images))
         images, _labels = dataset_obj.get_minibatch_np(1)
         images = misc.adjust_dynamic_range(images, [0, 255], [-1, 1])
+        print("read image from database:", images.shape)
+        import cv2
+        cv2.imwrite("test_project_real_images_image_from_db.png", images)
+        project_image(proj, targets=images, png_prefix=dnnlib.make_run_dir_path('image%04d-' % image_idx), num_snapshots=num_snapshots)
+
+
+def project_real_images_give_image(network_pkl, dataset_name, data_dir, num_images, num_snapshots, dest_images):
+    print('Loading networks from "%s"...' % network_pkl)
+    _G, _D, Gs = pretrained_networks.load_networks(network_pkl)
+    proj = projector.Projector()
+    proj.set_network(Gs)
+
+    print('Loading images from "%s"...' % dataset_name)
+    dataset_obj = dataset.load_dataset(data_dir=data_dir, tfrecord_dir=dataset_name, max_label_size=0, repeat=False, shuffle_mb=0)
+    assert dataset_obj.shape == Gs.output_shape[1:]
+
+    for image_idx in range(num_images):
+        print('Projecting image %d/%d ...' % (image_idx, num_images))
+
+        images, _labels = dataset_obj.get_minibatch_np(1)
+        images = misc.adjust_dynamic_range(images, [0, 255], [-1, 1])
         project_image(proj, targets=images, png_prefix=dnnlib.make_run_dir_path('image%04d-' % image_idx), num_snapshots=num_snapshots)
 
 #----------------------------------------------------------------------------
@@ -85,10 +106,10 @@ def _parse_num_range(s):
 _examples = '''examples:
 
   # Project generated images
-  python %(prog)s project-generated-images --network=gdrive:networks/stylegan2-car-config-f.pkl --seeds=0,1,5
+  python run_projector.py project-generated-images --network=network-snapshot-013236.pkl --seeds=10000-10030
 
   # Project real images
-  python %(prog)s project-real-images --network=gdrive:networks/stylegan2-car-config-f.pkl --dataset=car --data-dir=~/datasets
+  python run_projector.py project-real-images --network=network-snapshot-013236.pkl --dataset=oppai128 --data-dir=/media/scsonic/ai/GanDataSet
 
 '''
 
@@ -107,17 +128,17 @@ Run 'python %(prog)s <subcommand> --help' for subcommand help.''',
 
     project_generated_images_parser = subparsers.add_parser('project-generated-images', help='Project generated images')
     project_generated_images_parser.add_argument('--network', help='Network pickle filename', dest='network_pkl', required=True)
-    project_generated_images_parser.add_argument('--seeds', type=_parse_num_range, help='List of random seeds', default=range(3))
-    project_generated_images_parser.add_argument('--num-snapshots', type=int, help='Number of snapshots (default: %(default)s)', default=5)
-    project_generated_images_parser.add_argument('--truncation-psi', type=float, help='Truncation psi (default: %(default)s)', default=1.0)
+    project_generated_images_parser.add_argument('--seeds', type=_parse_num_range, help='List of random seeds', default=range(20))
+    project_generated_images_parser.add_argument('--num-snapshots', type=int, help='Number of snapshots (default: %(default)s)', default=24)
+    project_generated_images_parser.add_argument('--truncation-psi', type=float, help='Truncation psi (default: %(default)s)', default=0.5)
     project_generated_images_parser.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)', default='results', metavar='DIR')
 
     project_real_images_parser = subparsers.add_parser('project-real-images', help='Project real images')
     project_real_images_parser.add_argument('--network', help='Network pickle filename', dest='network_pkl', required=True)
     project_real_images_parser.add_argument('--data-dir', help='Dataset root directory', required=True)
     project_real_images_parser.add_argument('--dataset', help='Training dataset', dest='dataset_name', required=True)
-    project_real_images_parser.add_argument('--num-snapshots', type=int, help='Number of snapshots (default: %(default)s)', default=5)
-    project_real_images_parser.add_argument('--num-images', type=int, help='Number of images to project (default: %(default)s)', default=3)
+    project_real_images_parser.add_argument('--num-snapshots', type=int, help='Number of snapshots (default: %(default)s)', default=24)
+    project_real_images_parser.add_argument('--num-images', type=int, help='Number of images to project (default: %(default)s)', default=100)
     project_real_images_parser.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)', default='results', metavar='DIR')
 
     args = parser.parse_args()

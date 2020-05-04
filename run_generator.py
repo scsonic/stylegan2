@@ -35,6 +35,40 @@ def generate_images(network_pkl, seeds, truncation_psi):
         images = Gs.run(z, None, **Gs_kwargs) # [minibatch, height, width, channel]
         PIL.Image.fromarray(images[0], 'RGB').save(dnnlib.make_run_dir_path('seed%04d.png' % seed))
 
+
+def generate_images_two_image(network_pkl, seeds, truncation_psi):
+    print('Loading networks from "%s"...' % network_pkl)
+    _G, _D, Gs = pretrained_networks.load_networks(network_pkl)
+    noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
+
+    Gs_kwargs = dnnlib.EasyDict()
+    Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
+    Gs_kwargs.randomize_noise = False
+    if truncation_psi is not None:
+        Gs_kwargs.truncation_psi = truncation_psi
+
+    dic_z = []
+    for seed_idx, seed in enumerate(seeds):
+        print('Generating image for seed %d (%d/%d) ...' % (seed, seed_idx, len(seeds)))
+        rnd = np.random.RandomState(seed)
+        z = rnd.randn(1, *Gs.input_shape[1:]) # [minibatch, component]
+        tf_set_var_temp = {var: rnd.randn(*var.shape.as_list()) for var in noise_vars}
+        tflib.set_vars(tf_set_var_temp) # [height, width]
+        print(tf_set_var_temp)
+        dic_z.append(z)
+        images = Gs.run(z, None, **Gs_kwargs) # [minibatch, height, width, channel]
+        PIL.Image.fromarray(images[0], 'RGB').save(dnnlib.make_run_dir_path('seed%04d.png' % seed))
+
+    z1 = dic_z[0]
+    z2 = dic_z[1]
+    print(z1.shape, z2.shape)
+    max_step = 100
+    z_arr = np.linspace(z1, z2, max_step)
+    for z in z_arr:
+        images = Gs.run(z, None, **Gs_kwargs) # [minibatch, height, width, channel]
+        PIL.Image.fromarray(images[0], 'RGB').save(dnnlib.make_run_dir_path('seed%04d.png' % seed))
+
+
 #----------------------------------------------------------------------------
 
 def style_mixing_example(network_pkl, row_seeds, col_seeds, truncation_psi, col_styles, minibatch_size=4):
@@ -102,16 +136,16 @@ def _parse_num_range(s):
 _examples = '''examples:
 
   # Generate ffhq uncurated images (matches paper Figure 12)
-  python %(prog)s generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl --seeds=6600-6625 --truncation-psi=0.5
+  python run_generator.py generate-images --network=network-snapshot-013236.pkl --seeds=1-20000 --truncation-psi=0.5
 
   # Generate ffhq curated images (matches paper Figure 11)
-  python %(prog)s generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl --seeds=66,230,389,1518 --truncation-psi=1.0
+  python run_generator.py generate-images --network=network-snapshot-013236.pkl --seeds=20001-20100 --truncation-psi=1.0
 
   # Generate uncurated car images (matches paper Figure 12)
-  python %(prog)s generate-images --network=gdrive:networks/stylegan2-car-config-f.pkl --seeds=6000-6025 --truncation-psi=0.5
+  python run_generator.py generate-images --network=network-snapshot-013236.pkl --seeds=6000-6025 --truncation-psi=0.5
 
   # Generate style mixing example (matches style mixing video clip)
-  python %(prog)s style-mixing-example --network=gdrive:networks/stylegan2-ffhq-config-f.pkl --row-seeds=85,100,75,458,1500 --col-seeds=55,821,1789,293 --truncation-psi=1.0
+  python run_generator.py style-mixing-example --network=network-snapshot-013236.pkl --row-seeds=20200-20220 --col-seeds=20200-20220 --truncation-psi=0.5
 '''
 
 #----------------------------------------------------------------------------
@@ -157,7 +191,7 @@ Run 'python %(prog)s <subcommand> --help' for subcommand help.''',
     sc.run_desc = subcmd
 
     func_name_map = {
-        'generate-images': 'run_generator.generate_images',
+        'generate-images': 'run_generator.generate_images_two_image',
         'style-mixing-example': 'run_generator.style_mixing_example'
     }
     dnnlib.submit_run(sc, func_name_map[subcmd], **kwargs)

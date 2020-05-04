@@ -42,7 +42,7 @@ def _str_to_bool(v):
 
 _examples = '''examples:
 
-  python %(prog)s --data-dir=~/datasets --network=gdrive:networks/stylegan2-ffhq-config-f.pkl --metrics=fid50k,ppl_wend --dataset=ffhq --mirror-augment=true
+  python run_metrics.py --data-dir=/media/scsonic/ai/GanDataSet --network=network-snapshot-013236.pkl --metrics=fid50k,ppl_wend --dataset=oppai128 --mirror-augment=true
 
 valid metrics:
 
